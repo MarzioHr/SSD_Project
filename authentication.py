@@ -62,11 +62,11 @@ def existingUser(user:str, password:str) -> tuple:
     If successful, returns authenticated user as tuple: (user id, username, first name, last name)
     """
     if user != "":
-        mycursor.execute("SELECT id, username, password, first_name, last_name FROM users WHERE username = %s", (user))
+        mycursor.execute("SELECT id, username, password, first_name, last_name FROM users WHERE username = %(val)s", {'val':user})
         userResult = mycursor.fetchall()
         if userResult:
             if ph.verify(row[2], password) == True:
-                print("\nLogin Successful. WELCOME TO THE DUTCH ICSC DIGITAL FORENSIC SYSTEM, %s!" % row[3])
+                print("\nLogin Successful. WELCOME TO THE DUTCH NCSC DIGITAL FORENSIC SYSTEM, %s!" % row[3])
                 return (row[0],row[1],row[3],row[4])
             else:
                 print("\nLogin Error: Invalid user")
@@ -74,3 +74,5 @@ def existingUser(user:str, password:str) -> tuple:
             print("\nLogin Error: Invalid user")        
     else:
         print("\nLogin Error: Invalid user")
+        
+    #Test 
