@@ -9,22 +9,21 @@ def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:in
     Function to sign up a new user. Takes user information as arg to sign up accordingly.
     If sign-up is successful, triggers notification email.
     '''
-    cursor = dbc.establish_connection('authentication').cursor() # Connect Cursor to Authentication DB
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor() # Connect Cursor to Authentication DB
     username = generate_username(first_name, last_name)
     password = generate_password(12)
     clear_pswd = password[0]
     hash_pswd = password[1]
     
-    sql = '''
+    sql = """
           INSERT INTO users (first_name, last_name, dob, user_role, username, password, status, email)
-          VALUES (%s,%s,%s,%s,%s,%s,%s,%s);
-          '''
-    val = (first_name, last_name, dob, role, username, hash_pswd, 1, email)
-    #val = {'first_name':first_name, 'last_name':last_name, 'dob':dob, 'role':role, 'username':username, 'password':hash_pswd, 'email':email}
-    print(sql, val)
-    cursor.execute(sql,val)
+          VALUES (%(first_name)s,%(last_name)s,%(dob)s,%(role)s,%(username)s,%(password)s,%(status)s,%(email)s);
+          """
+    val = {'first_name':first_name, 'last_name':last_name, 'dob':dob, 'role':role, 'username':username, 'password':hash_pswd, 'status':1, 'email':email}
     try:    
-        pass
+        cursor.execute(sql, val)
+        conn.commit()
     except:
         print('Issue with registering new user on database. Please check the db connection and ensure that it is working as expected.')
         return False
@@ -45,28 +44,87 @@ def modify_user(uid:int, attribute:str, new_value:str) -> bool:
     Function to modify an existing user. Takes the user id as input to execute upon.
     The attribute denotes the datafield to be modified, the new_value denotes the new value after the modification.
     '''
-    pass  
-
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor() # Connect Cursor to Authentication DB
+    
+    if attribute == 'user_role':
+        new_value = int(new_value) # change new value to int type if the user role is being changed
+        
+    sql = "UPDATE users SET " + attribute + " = %(val)s WHERE id = %(uid)s;"
+    val = {'val':new_value, 'uid': uid}
+    try:
+        cursor.execute(sql,val)
+        conn.commit()
+    except:
+        return False
+    return True
+    
 
 def unlock_user(uid:int) -> bool:
     '''
     Function to unlock an already locked user. Takes as input the user's id.
     If unlock was successful, will return bool 'True'. If there was an error, returns bool 'False'.
     '''
-    pass
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor() # Connect Cursor to Authentication DB
+    sql = "UPDATE users SET status=1 WHERE id=%(uid)s;"
+    val = {'uid':uid}
+    try:
+        cursor.execute(sql,val)
+        conn.commit()
+    except:
+        return False
+    return True
+
+
+def lock_user(uid:int) -> bool:
+    '''
+    Function to lock a user if there are more than three failed login atttempts. Takes as input the user's id.
+    If lock was successful, will return bool 'True'. If there was an error, returns bool 'False'.
+    '''
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor() # Connect Cursor to Authentication DB
+    sql = "UPDATE users SET status=3 WHERE id=%(uid)s;"
+    val = {'uid':uid}
+    try:
+        cursor.execute(sql,val)
+        conn.commit()
+    except:
+        return False
+    return True
+
+
+def deactivate_user(uid:int) -> bool:
+    '''
+    Function to deactivate (soft-delete) a user if the access is no longer needed. Takes as input the user's id.
+    If deactivation was successful, will return bool 'True'. If there was an error, returns bool 'False'.
+    '''
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor() # Connect Cursor to Authentication DB
+    sql = "UPDATE users SET status=2 WHERE id=%(uid)s;"
+    val = {'uid':uid}
+    try:
+        cursor.execute(sql,val)
+        conn.commit()
+    except:
+        return False
+    return True
 
 
 def fetch_user_info(email:str) -> tuple:
     '''
     Queries user information based on the given email.
-    Returns a tuple of user id, first name, last name, email and status.
+    Returns a tuple of user id, first name, last name, email and status if user was found.
+    Returns None if user was not found.
     '''
     cursor = dbc.establish_connection('authentication').cursor() # Connect Cursor to Authentication DB
     sql = "SELECT * FROM users WHERE email=%(val)s"
     val = {'val':email}
     cursor.execute(sql,val)
-    result = cursor.fetchall()[0]
-    #print(result)
+    try:
+        result = cursor.fetchall()[0]
+    except:
+        return None
     return (result[0], result[1], result[2], result[9], result[8])
 
 
@@ -76,10 +134,13 @@ def fetch_all_authorities() -> list:
     Returns a list of tuples containing pairs of emails and first_names to be used by the source notification email.
     '''
     cursor = dbc.establish_connection('authentication').cursor() # Connect Cursor to Authentication DB
-    sql = "SELECT * FROM users WHERE role=3"
+    sql = "SELECT * FROM users WHERE user_role=3"
     cursor.execute(sql)
-    # filter results and pass list with tuples TODO
-    pass
+    result = cursor.fetchall()
+    output = []
+    for item in result:
+        output.append((item[9], item[1]))
+    return output
 
 
 def generate_password(length:int) -> tuple:
@@ -127,9 +188,12 @@ def username_exists(username:str) -> bool:
 
     
 ### Testcases ###
-# print(fetch_user_info('marziohruschka@gmail.com'))
-# print(username_exists('m.hruschka'))
+# print(fetch_user_info('kalina.mhn@gmail.com'))
+# print(username_exists('k.mohonee'))
 # print(generate_username('Marzio', 'Hruschka'))
-print(generate_password(12))
-#print(register_new_user('Johnathana', 'Doee', '1980-01-21', 'marziohruschka+johndoee@gmail.com', 3))
-#print(fetch_user_info('marziohruschka+johndoee@gmail.com'))
+# print(generate_password(12))
+# print(register_new_user('Hannah', 'Monroe', '1989-12-15', 'marziohruschka+hannahmonroe@gmail.com', 3))
+# print(fetch_user_info('marziohruschka+johndoe@gmail.com'))
+# print(fetch_all_authorities())
+# print(unlock_user(1))
+# print(modify_user(4, 'user_role', '3'))
