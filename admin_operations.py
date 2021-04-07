@@ -196,4 +196,5 @@ def username_exists(username:str) -> bool:
 # print(fetch_user_info('marziohruschka+johndoe@gmail.com'))
 # print(fetch_all_authorities())
 # print(unlock_user(1))
+# print(lock_user(1))
 # print(modify_user(4, 'user_role', '3'))
