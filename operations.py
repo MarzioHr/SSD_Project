@@ -12,10 +12,7 @@ def search_for_source(attribute:str, value:str) -> list:
     Note that if the attribute is 'id', the value has to be transformed from string to integer prior to searching.
     
     The return value should contain all the results from the query (i.e. the 'fetchall()' result)
-    
-    pass
     '''
-    
     cursor = dbc.establish_connection('data').cursor()
     
     sql = "";
@@ -41,15 +38,13 @@ def create_new_source(name:str, url:str, threat_level:int, description:str) -> b
     Returns a bool value depending on whether the creation was successful. I.e. should return 'True' if successful and 'False' if not.
     
     If successful, should trigger an email notification to be sent out to all users with role=3 (External Authority)
-   
-    pass
     '''
-    
-    cursor = dbc.establish_connection('data').cursor()
+    conn = dbc.establish_connection('data')
+    cursor = conn.cursor()
     
     sql = """
           INSERT INTO sources (name, url, threat_level, description, creation_date, modified_date)
-          VALUES (%(name)s,%(url)s,%(threat_level)s,%(description)s,%(creation_date)s,%(modified_date)s);
+          VALUES (%(name)s,%(url)s,%(threat_level)s,%(description)s,%(creation_date)s,%(modified_date)s) RETURNING id;
           """
     val = {'name':name, 'url':url, 'threat_level':threat_level, 'description':description, 'creation_date':datetime.now(), 'modified_date':datetime.now()}
     try:    
@@ -57,11 +52,14 @@ def create_new_source(name:str, url:str, threat_level:int, description:str) -> b
         sourceId = cursor.fetchone()[0]
         conn.commit()
     except:
-        'Trigger Notification?'
         return False
     else:
+        recipients = adops.fetch_all_authorities() # fetching list of authority users
+        source_id = cursor.fetchone()[0] # retrieving the id of the newly created source
+        notification.new_source_email(recipients, source_id, name, url, threat_level) # triggering the source notification email
         return True
 
+    
 def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
     '''
     Function to modify the information of an existing source. Takes as input the id of the source that is being modified, the attribute to be modified
@@ -70,10 +68,9 @@ def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
     Example: modify_source(1, 'name', 'Google') -> Would change the 'name' of the source with id=1 to 'Google'
     
     Returns a bool value depending on whether the modification was successful. I.e. should return 'True' if successful and 'False' if not.
-    
-    pass
     '''
-    cursor = dbc.establish_connection('data').cursor()
+    conn = dbc.establish_connection('data')
+    cursor = conn.cursor()
     
     if attribute == 'threat_level':
         new_value = int(new_value) # change new value to int type if the Threat Level is being changed
@@ -87,16 +84,16 @@ def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
         return False
     return True
 
+
 def change_password(user_id:int, new_password:str) -> bool:
     '''
-    Function to change the password of a specific user. Takes the user id and new password as input.
+    Function to change the password of a specific user. Takes the user id and new password hash as input.
     Returns a bool value depending on whether the modification was successful. I.e. should return 'True' if successful and 'False' if not.
     
     Also should trigger an email notification if the password has been changed successfully.
-    
-    pass
     '''
-    cursor = dbc.establish_connection('authentication').cursor()
+    conn = dbc.establish_connection('authentication')
+    cursor = conn.cursor()
         
     sql = "UPDATE users SET password = %(val)s WHERE id = %(id)s;"
     val = {'val':new_password, 'id': user_id}
@@ -104,8 +101,11 @@ def change_password(user_id:int, new_password:str) -> bool:
         cursor.execute(sql,val)
         conn.commit()
     except:
-        'Trigger Notification?'
         return False
     else:
+        fetch_user = adops.fetch_user_info(uid=user_id) # retrieves user's information by fetching it with the uid
+        u_email = fetch_user[1]
+        u_first_name = fetch_user[3]
+        notification.changed_password_email(u_first_name, u_email) # triggers password changed notification email
         return True
     

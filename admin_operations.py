@@ -111,21 +111,43 @@ def deactivate_user(uid:int) -> bool:
     return True
 
 
-def fetch_user_info(email:str) -> tuple:
+def fetch_user_info(uid=None, email=None, username=None) -> tuple:
     '''
-    Queries user information based on the given email.
-    Returns a tuple of user id, first name, last name, email and status if user was found.
+    Queries user information based on the given email, username or uid.
+    Returns a tuple of user id, first name, last name, email, dob and status if user was found.
     Returns None if user was not found.
     '''
     cursor = dbc.establish_connection('authentication').cursor() # Connect Cursor to Authentication DB
-    sql = "SELECT * FROM users WHERE email=%(val)s"
-    val = {'val':email}
-    cursor.execute(sql,val)
-    try:
-        result = cursor.fetchall()[0]
-    except:
-        return None
-    return (result[0], result[1], result[2], result[9], result[8])
+    
+    if uid != None:
+        sql = "SELECT * FROM users WHERE id=%(val)s"
+        val = {'val':uid}
+        try:
+            cursor.execute(sql,val)
+            result = cursor.fetchall()[0]
+        except:
+            return None
+        return (result[0], result[1], result[2], result[9], result[3], result[8])
+        
+    if email != None:
+        sql = "SELECT * FROM users WHERE email=%(val)s"
+        val = {'val':email}
+        try:
+            cursor.execute(sql,val)
+            result = cursor.fetchall()[0]
+        except:
+            return None
+        return (result[0], result[1], result[2], result[9], result[3], result[8])
+    
+    if username != None:
+        sql = "SELECT * FROM users WHERE username=%(val)s"
+        val = {'val':username}
+        try:
+            cursor.execute(sql,val)
+            result = cursor.fetchall()[0]
+        except:
+            return None
+        return (result[0], result[1], result[2], result[9], result[3], result[8])
 
 
 def fetch_all_authorities() -> list:
@@ -188,13 +210,13 @@ def username_exists(username:str) -> bool:
 
     
 ### Testcases ###
-# print(fetch_user_info('kalina.mhn@gmail.com'))
+# print(fetch_user_info(email='kalina.mhn@gmail.com'))
 # print(username_exists('k.mohonee'))
 # print(generate_username('Marzio', 'Hruschka'))
 # print(generate_password(12))
 # print(register_new_user('Hannah', 'Monroe', '1989-12-15', 'marziohruschka+hannahmonroe@gmail.com', 3))
 # print(fetch_user_info('marziohruschka+johndoe@gmail.com'))
 # print(fetch_all_authorities())
-# print(unlock_user(1))
+# print(unlock_user(3))
 # print(lock_user(1))
 # print(modify_user(4, 'user_role', '3'))

@@ -1,4 +1,6 @@
-from getpass import getpass
+import stdiomask
+import authentication as auth
+import admin_operations as adops
 
 class Interface:
     
@@ -8,6 +10,9 @@ class Interface:
         self.urole = None
         self.first_name = None
         
+        self.entered_username = None
+        self.failed_attempts = 0
+        
         self.motd() # call motd to display
     
     
@@ -16,7 +21,15 @@ class Interface:
         Display the motd including privacy and data policies. Prompts user to accept the ToS.
         If user agrees, display login prompt. If user disagrees, terminate CLI.
         '''
-        pass
+        with open('config/banner.bin','r') as file:
+            motd = file.readlines()
+            for line in motd:
+                print(line, end='')
+        choice = self.y_n_input("Do you agree with our Terms of Service and Data Privacy Policies? (y/n): ")
+        if choice == 'y':
+            self.login()
+        else:
+            quit()
     
     
     def login(self):
@@ -25,13 +38,39 @@ class Interface:
         If combination is incorrect after third try, that specific user will be locked from logging in again.
         '''  
         inpt_username = self.username_input()
-        inpt_password = getpass(prompt="Please enter you Password: ")
-        # auth_user = authentication.existing_user(inpt_username,inpt_password) -> tuple(uid, urole, firstname, status, last_login)
-        # check if locked account
-        # check if first time login
-        # set uid, urole and firstname
-        # print(f"Access Granted! Welcome back, {self.firstname}.")
-        self.handle_main()
+        inpt_password = stdiomask.getpass()
+        failed_attempts = 0
+        
+        login = auth.existing_user(inpt_username,inpt_password)
+
+        if login == None: # Condition if Username was not found
+            print('The Username and Password combination you have entered is incorrect. Please check and try again.')
+            self.login()
+        
+        elif login == False: # Condition if entered password was incorrect
+            if self.entered_username != inpt_username: # if the entered username differs from the last tried one, reset failed attempts to 1
+                self.entered_username = inpt_username
+                self.failed_attempts = 1
+                print('The Username and Password combination you have entered is incorrect. Please check and try again.')
+                self.login()
+            else: # if the entered username is failed multiple times in succession, trigger lock user functionality (max. 3 failed attempts on same username)
+                if self.failed_attempts < 3:
+                    self.failed_attempts += 1
+                    print('The Username and Password combination you have entered is incorrect. Please check and try again.')
+                    self.login()
+                else:
+                    adops.lock_user(adops.fetch_user_info(username=inpt_username)[0])
+                    print('Your account has been locked because it reached a maximum amount of failed login attempts.')
+                    print('Please contact the system administrator team for further assistance.\n')
+                    quit()
+        
+        else:
+            self.uid = login[0]
+            self.urole = login[2]
+            self.first_name = login[1]
+            # check first time login
+            print(f'\nAccess Granted! Welcome back, {self.first_name}.')
+            self.handle_main()
     
     
     def handle_main(self):
@@ -57,14 +96,12 @@ class Interface:
         Choices include:
         Creating a new user, modifying an existing user, deactivating (soft deleting) an existing user, unlocking a user, logout.
         '''
-        print('''
-            \nPlease select what you want to do:\n 
-            \n 1. Create New User
-            \n 2. Modify Existing User
-            \n 3. Deactivate User
-            \n 4. Unlock User 
-            \n 5. Logout
-            ''')
+        print('\nPlease select what you want to do:\n')
+        print(' 1. Create New User')
+        print(' 2. Modify Existing User')
+        print(' 3. Deactivate User')
+        print(' 4. Unlock User') 
+        print(' 5. Logout')
         choice = self.choice_input(5)
         if choice == 1:
             self.create_user()
@@ -83,18 +120,19 @@ class Interface:
         Displays main menu options for the specialist (employee) role. Depending on choice, will trigger the operation from the operations module.
         Choices include: Search existing sources, create a new source, logout.
         '''
-        print('''
-            \nPlease select what you want to do:\n 
-            \n 1. Search Source
-            \n 2. Create New Source Entry
-            \n 3. Logout
-            ''')
-        choice = self.choice_input(3)
+        print('\nPlease select what you want to do:\n')
+        print(' 1. Search Source')
+        print(' 2. Create New Source Entry')
+        print(' 3. Change Password')
+        print(' 4. Logout')
+        choice = self.choice_input(4)
         if choice == 1:
             self.search_sources()
         elif choice == 2:
             self.create_source()
-        else
+        elif choice == 3:
+            self.change_password()
+        else:
             self.logout()
             
     
@@ -103,15 +141,16 @@ class Interface:
         Displays main menu options for the authority (third-party) role. Depending on choice, will trigger the operation from the operations module.
         Choices include: Search existing sources, logout.
         '''
-        print('''
-            \nPlease select what you want to do:\n 
-            \n 1. Search Source
-            \n 2. Logout
-            ''')
-        choice = self.choice_input(2)
+        print('\nPlease select what you want to do:\n')
+        print(' 1. Search Source')
+        print(' 2. Change Password')
+        print(' 3. Logout')
+        choice = self.choice_input(3)
         if choice == 1:
             self.search_sources()
-        else
+        elif choice == 2:
+            self.change_password()
+        else:
             self.logout()
     
     
@@ -127,26 +166,26 @@ class Interface:
         
         If user is registered successfully, the user password will be autogenerated and sent to the user's email address.
         '''
-        print('''
-            \nCreating a New User
-            \n---------------------------\n
-            ''')
+        print('\nCreate a New User')
+        print('---------------------------')
         inpt_first = self.name_input("First")
         inpt_last = self.name_input("Last")
-        inpt_email = self.email_input()
+        inpt_email = self.email_input(register=True)
         inpt_dob = self.dob_input()
         
-        print('''
-            \nPlease select the user role:\n
-            \n 1. Administrator
-            \n 2. Specialist
-            \n 3. External Authority
-            ''')
+        print('\nPlease select the user role:')
+        print(' 1. Administrator')
+        print(' 2. Specialist')
+        print(' 3. External Authority')
         inpt_role = self.choice_input(3)
-        # admin_operations.register(inputs)
-        print("\nUser has successfully been created!")
         
-        choice = self.y_n_input("Do you want to create another user? y/n")
+        result = adops.register_new_user(inpt_first, inpt_last, inpt_dob, inpt_email, inpt_role)
+        if result:
+            print("User has successfully been created!")
+        else:
+            print("Error: User has not been created successfully. Please try again.")
+              
+        choice = self.y_n_input("\nDo you want to create another user? (y/n): ")
         if choice == 'y':
             self.create_user()
         else:
@@ -154,11 +193,83 @@ class Interface:
         
 
     def modify_user(self):
-        pass
-    
-    
+        '''
+        Function to prompt user modification options.
+        Admin can change user's first name, last name, dob and user role.
+        '''
+        print('\nModify an existing User')
+        print('---------------------------')
+        inpt_email = self.email_input()
+        result = adops.fetch_user_info(email=inpt_email)
+        if result != None:
+            print('User Found:')
+            print(f'ID: {result[0]}\t|\tFirst Name: {result[1]}\t|\tLast Name: {result[2]}\t|\t', end='')
+            print(f'Email: {result[3]}\t|\tDate of Birth: {result[4]}\t|\tCurrent Status: {result[5]}\n')
+            print('What would you like to change?')
+            print(' 1.) First Name')
+            print(' 2.) Last Name')
+            print(' 3.) Date of Birth')
+            print(' 4.) Cancel')
+            edit_option = self.choice_input(4)
+            if edit_option==1:
+                inpt_first = self.name_input("new First")
+                changed = adops.modify_user(result[0], 'first_name', inpt_first)
+                if changed:
+                    print("User has successfully been modified!")
+                else:
+                    print("Error: User has not been modified successfully. Please try again.")
+            elif edit_option==2:
+                inpt_last = self.name_input("new Last")
+                changed = adops.modify_user(result[0], 'last_name', inpt_last)
+                if changed:
+                    print("User has successfully been modified!")
+                else:
+                    print("Error: User has not been modified successfully. Please try again.")
+            elif edit_option==3:
+                inpt_dob = self.dob_input()
+                changed = adops.modify_user(result[0], 'dob', inpt_dob)
+                if changed:
+                    print("User has successfully been modified!")
+                else:
+                    print("Error: User has not been modified successfully. Please try again.")
+        else:
+            print('No User found for the email address.')
+        choice = self.y_n_input("\nDo you want to modify another user? (y/n): ")
+        if choice == 'y':
+            self.modify_user()
+        else:
+            self.handle_main()
+           
+        
     def deactivate_user(self):
-        pass
+        '''
+        Prompts dialogue for deactivating an existing user.
+        If successful, the user in question will have his status changed to 'deactivated'
+        '''
+        print('\nDeactivate an Existing User')
+        print('---------------------------')
+        deact_email = self.email_input()
+        result = adops.fetch_user_info(email=deact_email)
+        if result != None:
+            if result[5] != 2:
+                print('User Found:')
+                print(f'ID: {result[0]}\t|\tFirst Name: {result[1]}\t|\tLast Name: {result[2]}\t|\tEmail: {result[3]}\t|\tCurrent Status: {result[5]}\n')
+                choice = self.y_n_input("Are you sure you want to deactivate this user? (y/n): ")
+                if choice == 'y':
+                    deactivated = adops.deactivate_user(result[0])
+                    if deactivated:
+                        print("User has successfully been deactivated.")
+                    else:
+                        print('Error: User could not be deactivated. Please try again.')
+            else:
+                print('Error: User is already deactivated.')
+        else:
+            print('No User found for the email address.')
+        choice = self.y_n_input("\nDo you want to deactivate another user? (y/n): ")
+        if choice == 'y':
+            self.deactivate_user()
+        else:
+            self.admin_menu()
     
     
     def unlock_user(self):
@@ -166,23 +277,30 @@ class Interface:
         Prompts dialogue for unlocking a locked-out user.
         If successful, the user in question will have his status changed back to 'active'
         '''
-        print('''
-            \nUnlock an Existing User
-            \n---------------------------\n
-            ''')
+        print('\nUnlock an Existing User')
+        print('---------------------------')
         unlock_email = self.email_input()
-        
-        # Query Information from admin_operations
-        # Show error message if user not found ("Entered user email is invalid. Please check and try again.")
-        # If user is locked, display information back (e.g. UID, first name, last name, role and email)
-        choice = self.y_n_input("Are you sure you want to unlock this user? y/n")
-        if choice == 'y':
-            # change user status to 'Active'
-            print("\nUser has successfully been unlocked! The User can now login again.")
+        result = adops.fetch_user_info(email=unlock_email)
+        if result != None:
+            if result[5] == 3:
+                print('User Found:')
+                print(f'ID: {result[0]}\t|\tFirst Name: {result[1]}\t|\tLast Name: {result[2]}\t|\tEmail: {result[3]}\t|\tCurrent Status: {result[5]}\n')
+                choice = self.y_n_input("Are you sure you want to unlock this user? (y/n): ")
+                if choice == 'y':
+                    unlocked = adops.unlock_user(result[0])
+                    if unlocked:
+                        print("User has successfully been unlocked! The User can now login again.")
+                    else:
+                        print('Error: User could not be unlocked. Please try again.')
+            else:
+                print('Error: User is currently not locked.')
         else:
-            print("\nUser has not been unlocked.")
-        self.admin_menu()
-
+            print('No User found for the email address.')
+        choice = self.y_n_input("\nDo you want to unlock another user? (y/n): ")
+        if choice == 'y':
+            self.unlock_user()
+        else:
+            self.admin_menu()
     
     
     def search_sources(self):
@@ -191,6 +309,15 @@ class Interface:
     
     def create_source(self):
         pass
+    
+    
+    def change_password(self):
+        pass
+        # prompt to enter existing password
+        # prompt to enter new password (+ validation)
+        # prompt to confirm new password
+        # if all correct execute db query to change password
+        # logout user and ask to reconnect
     
     
     def logout(self):
@@ -210,12 +337,12 @@ class Interface:
         try:
             int_input = int(user_input)
         except:
-            print("Invalid selection. Please check your input and try again.")
+            print("Error: Invalid selection. Please check your input and try again.")
             return self.choice_input(num_choices)
         if int_input > 0 and int_input <= num_choices:
             return int_input
         else:
-            print("Invalid selection. Please check your input and try again.")
+            print("Error: Invalid selection. Please check your input and try again.")
             return self.choice_input(num_choices)    
     
     
@@ -230,7 +357,7 @@ class Interface:
         input_user = input("\nPlease enter your Username: ")
         
         if len(input_user) < MIN_LEN: # checks the length of the entered username
-            print("Entered username is invalid. Please check and try again.")
+            print("Error: Entered username is invalid. Please check and try again.")
             return self.username_input()
         
         for char in input_user: # checks each character of user input 
@@ -239,7 +366,7 @@ class Interface:
             elif char in VALID_CHAR:
                 continue # continue if current char is part of the valid characters tuple
             else:
-                print("Entered username is invalid. Please check and try again.")
+                print("Error: Entered username is invalid. Please check and try again.")
                 return self.username_input()
             
         return input_user # returns entered string if all validation rules are met
@@ -262,7 +389,7 @@ class Interface:
         input_name = input(f"\nPlease enter the User's {name_type} Name: ")
     
         if len(input_name) < MIN_LEN: # checks the length of the entered name
-            print("Entered Name is invalid. Please check and try again.")
+            print("Error: Entered Name is invalid. Please check and try again.")
             return self.name_input(name_type)
         
         for char in input_name: # checks each character of name input 
@@ -271,13 +398,13 @@ class Interface:
             elif char in VALID_CHAR:
                 continue # continue if current char is part of the valid characters tuple
             else:
-                print("Entered Name is invalid. Please check and try again.")
+                print("Error: Entered Name is invalid. Please check and try again.")
                 return self.name_input(name_type)
             
         return input_name # returns entered string if all validation rules are met
     
         
-    def email_input(self) -> str:
+    def email_input(self, register=False) -> str:
         '''
         Wrapper to validate and sanitise the user input for email.
         Ensures that entered string is following the validation rules and, if so, returns the entered string.
@@ -285,12 +412,23 @@ class Interface:
         Must contain exactly 1x '@' and atleast 1x '.' and end with a letter. May contain alphanum and '-', '.', '_', '+'
         '''
         VALID_CHAR = ('-', '.', '_', '+')
+        MIN_LEN = 7
         
         num_at_sign = 0
         contains_dot = False
         ends_with_letter = False
     
         input_email = input(f"\nPlease enter the User's Email Address: ")
+        
+        if register:
+            email_exists = adops.fetch_user_info(email=input_email)
+            if email_exists:
+                print("Error: Entered Email Address is already tied to a User in the system.")
+                return self.email_input()
+        
+        if len(input_email) < MIN_LEN:
+            print("Error: Entered Email Address is invalid. Please check and try again.")
+            return self.email_input()
         
         if input_email[-1].isalpha(): # checks if email ends with a letter
             ends_with_letter = True
@@ -306,13 +444,13 @@ class Interface:
             elif char == '@':
                 num_at_sign += 1 # counts the number of times the '@' sign appears
             else:
-                print("Entered Email Address is invalid. Please check and try again.")
+                print("Error: Entered Email Address is invalid. Please check and try again.")
                 return self.email_input()
         
         if num_at_sign == 1 and contains_dot and ends_with_letter:
             return input_email # if all validations are met, the input string is returned
         else:
-            print("Entered Email Address is invalid. Please check and try again.")
+            print("Error: Entered Email Address is invalid. Please check and try again.")
             return self.email_input()
             
             
@@ -323,22 +461,22 @@ class Interface:
         
         Exactly 10 characters and may only contain numbers and '/'
         '''       
-        VALID_CHAR = ('/')
+        VALID_CHAR = ('-')
         EXACT_LEN = 10
         
-        input_dob = input(f"\nPlease enter the User's Date of Birth (Format DD/MM/YYYY): ")
+        input_dob = input(f"\nPlease enter the User's Date of Birth (Format YYYY-MM-DD): ")
         
-        if input_dob != EXACT_LEN:
-            print("Entered Date of Birth is invalid. Please check and try again.")
+        if len(input_dob) != EXACT_LEN:
+            print("Error: Entered Date of Birth is invalid. Please check and try again.")
             return self.dob_input()
         
         for char in input_dob:
-            if char.isnum():
+            if char.isnumeric():
                 continue
             elif char in VALID_CHAR:
                 continue
             else:
-                print("Entered Date of Birth is invalid. Please check and try again.")
+                print("Error: Entered Date of Birth is invalid. Please check and try again.")
                 return self.dob_input()
         
         return input_dob
@@ -353,5 +491,5 @@ class Interface:
         if input_choice == 'y' or input_choice == 'n':
             return input_choice    
         else: 
-            print("Please answer either 'y' for 'yes' or 'n' for 'no'.")
+            print("Error: Please answer either 'y' for 'yes' or 'n' for 'no' (please ensure that the input is in lowercase).")
             return self.y_n_input(question)

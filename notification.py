@@ -11,11 +11,11 @@ HTML_BODY = '''
 
 
 try:
-  loginFRetrieve = open("config/key.bin", "rb")
-  retrieved_key = loginFRetrieve.read()
-  loginFRetrieve.close()
+    loginFRetrieve = open("config/key.bin", "rb")
+    retrieved_key = loginFRetrieve.read()
+    loginFRetrieve.close()
 except:
-  print("Error retrieving key.")    
+    print("Error retrieving key.")    
 
 cipher = Fernet(retrieved_key)
 OUTBND_PSWD = cipher.decrypt(OUTBND_ENC_PSWD)
@@ -63,11 +63,11 @@ def new_source_email(recipient_list:list, source_id:id, source_name:str, source_
     
     Please note recipient_list structure should be: [('email1@email.com', 'firstname1'), ('email2@email.com', 'firstname2')]
     '''
-    SUBJECT = f'New Suspect Source has been added: {source_name}!'
+    SUBJECT = f'New Suspect Source has been added: {source_name}'
     
     EMAIL_BODY = f"""
                 <p><strong>Dear&nbsp;FIRSTNAME,</strong></p>
-                <p>This email serves as a notification that a new suspect source has been added to the NCSC Suspect Source system.</p>
+                <p>This email serves as a notification that a new suspect source has been added to the NCSC Suspect Sources System.</p>
                 <p>Overview of the added source:</p>
                 <p><span style="color: #0000ff;"><strong>Source Name:</strong></span> <strong>{source_name}</strong><br /> 
                 <span style="color: #0000ff;"><strong>Source ID:</strong></span> <strong>{source_id}</strong><br /> <strong>
@@ -81,7 +81,7 @@ def new_source_email(recipient_list:list, source_id:id, source_name:str, source_
         email = item[0]
         first_name = item[1]
         
-        content = EMAIL_BODY.replace('FIRSTNAME', 'first_name')
+        content = EMAIL_BODY.replace('FIRSTNAME', first_name)
         
         my_email = MIMEText(HTML_BODY.replace('{CONTENT}', content), "html")
         my_email["From"] = OUTBND_EMAIL
@@ -128,7 +128,8 @@ def changed_password_email(firstname:str, email:str) -> bool:
     else:
         return True
     
-    
+
+### Testcases ###
 # print(registration_email('Marzio', 'marziohruschka@gmail.com', 'm.hruschka', '123456789'))
-# print(new_source_email([('marziohruschka@googlemail.com', 'Marzio'), ('marziohruschka+1@gmail.com', 'Maze')], 1, '1337day', 'http://1337day.com', 4
+# print(new_source_email([('marziohruschka@googlemail.com', 'Marzio'), ('marziohruschka+1@gmail.com', 'Maze')], 1, '1337day', 'http://1337day.com', 4))
 # print(changed_password_email('Marzio', 'marziohruschka@gmail.com'))
