@@ -1,7 +1,9 @@
 import stdiomask
 import authentication as auth
 import admin_operations as adops
+import operations as ops
 
+    
 class Interface:
     
     def __init__(self):
@@ -9,6 +11,7 @@ class Interface:
         self.uid = None
         self.urole = None
         self.first_name = None
+        self.username = None
         
         self.entered_username = None
         self.failed_attempts = 0
@@ -68,9 +71,23 @@ class Interface:
             self.uid = login[0]
             self.urole = login[2]
             self.first_name = login[1]
-            # check first time login
-            print(f'\nAccess Granted! Welcome back, {self.first_name}.')
-            self.handle_main()
+            self.username = inpt_username
+            
+            last_login = auth.fetch_last_login(self.uid)
+            if last_login == None:
+                print(f'\nAccess Granted! Welcome to the System, {self.first_name}.')
+                print('Due to you logging into the system for the first time, please change your own password.')
+                while True: # while password is not changed iterate over password change prompt (i.e. won't be able to use system until password is changed)
+                    changed_pswd = self.change_password()
+                    if changed_pswd:
+                        auth.update_last_login(self.uid) # updates last_login date stamp
+                        print('\n You will now be logged out. Please login with your new password to use the system.')
+                        self.logout()
+        
+            else:
+                print(f'\nAccess Granted! Welcome back, {self.first_name}.')
+                auth.update_last_login(self.uid) # updates last_login date stamp
+                self.handle_main()
     
     
     def handle_main(self):
@@ -131,7 +148,12 @@ class Interface:
         elif choice == 2:
             self.create_source()
         elif choice == 3:
-            self.change_password()
+            changed_pswd = self.change_password()
+            if changed_pswd:
+                print('\n You will now be logged out. Please login with your new password to use the system.')
+                self.logout()
+            else:
+                self.handle_main()
         else:
             self.logout()
             
@@ -149,7 +171,12 @@ class Interface:
         if choice == 1:
             self.search_sources()
         elif choice == 2:
-            self.change_password()
+            changed_pswd = self.change_password()
+            if changed_pswd:
+                print('\n You will now be logged out. Please login with your new password to use the system.')
+                self.logout()
+            else:
+                self.handle_main()
         else:
             self.logout()
     
@@ -308,16 +335,61 @@ class Interface:
     
     
     def create_source(self):
-        pass
+        print('\nCreate a New Source')
+        print('---------------------------')
+        inpt_name = self.string_input("Name")
+        inpt_url = self.string_input("Url")
+        inpt_description = self.string_input("Description")
+        
+        print('\nPlease enter the threat level:')
+        print(' 0 : Min - 5 : Max')
+        inpt_threat_level = self.choice_input(5)
+        
+        result = ops.create_new_source(inpt_name, inpt_url, inpt_threat_level, inpt_description)
+        
+        if result:
+            print("Source has successfully been created!")
+        else:
+            print("Error: Source has not been created successfully. Please try again.")
+              
+        choice = self.y_n_input("\nDo you want to create another Source? (y/n): ")
+        if choice == 'y':
+            self.create_source()
+        else:
+            self.specialist_menu()
     
     
-    def change_password(self):
-        pass
-        # prompt to enter existing password
-        # prompt to enter new password (+ validation)
-        # prompt to confirm new password
-        # if all correct execute db query to change password
-        # logout user and ask to reconnect
+    def change_password(self) -> bool:
+        '''
+        Function and prompt to change password. User will need to enter his existing password.
+        User will then have to enter the new password and confirm it.
+        If all correct, password will be updated on the database.
+        Returns True if successful and False if not.
+        '''
+        inpt_password = stdiomask.getpass('Please enter your current Password: ')
+        login = auth.existing_user(self.username,inpt_password)
+        if login == None or login == False: # Condition if Password was not found or is incorrect
+            print('The Password you have entered is incorrect. Please check and try again.')
+        else:
+            print('\nPlease Note: Your password must be at least 12 characters long, include letters and numbers, as well as atleast one special character.')
+            new_password = stdiomask.getpass('\nPlease enter your new Password: ')
+            confirm_password = stdiomask.getpass('Please confirm your new Password: ')
+            valid_pswd = self.password_validator(new_password)
+            if valid_pswd:
+                if new_password == confirm_password:
+                    changed = ops.change_password(self.uid, auth.hash_pswd(new_password)) # sends updated password as hash to the change password function
+                    if changed:
+                        print('\nYour password has been successfully updated.')
+                        return True
+                    else:
+                        print('\nError: Your password could not be updated. Please check with the Administrator Team for further instructions.')
+                        return False
+                else:
+                    print('\nError: Your entered passwords do not match. Please try again.')
+                    return False
+            else:
+                print("\nError: Your password does not confirm with the system's password standards. Please try again.")
+                return False 
     
     
     def logout(self):
@@ -480,8 +552,36 @@ class Interface:
                 return self.dob_input()
         
         return input_dob
-           
+    
+    
+    def password_validator(self, password:str) -> bool:
+        '''
+        Checks if a given password is conform to the system's standards.
+        A password must be atleast 12 characters long, include letters and numbers, and atleast one special character.
+        Returns True if conform and False if not.
+        '''
+        MIN_LEN = 12
+        includes_letter = False
+        includes_number = False
+        includes_special = False
         
+        valid_special_char = '[@_!#$%^&*()<>?/\}{~:;]-.,'
+        
+        if len(password) < MIN_LEN:
+            return False
+        for char in password:
+            if char.isalpha():
+                includes_letter = True
+            elif char.isnumeric():
+                includes_number = True
+            elif char in valid_special_char:
+                includes_special = True
+        
+        if includes_special and includes_number and includes_special:
+            return True
+        return False
+        
+           
     def y_n_input(self, question:str) -> str:
         '''
         Validates a yes/no question and returns the str if answer is either 'y' or 'n'.
@@ -493,3 +593,18 @@ class Interface:
         else: 
             print("Error: Please answer either 'y' for 'yes' or 'n' for 'no' (please ensure that the input is in lowercase).")
             return self.y_n_input(question)
+        
+    def string_input(self, source_field) -> str:
+        '''
+        
+        '''
+
+        MIN_LEN = 5
+        
+        input_text = input(f"\nPlease enter the Source's {source_field}: ")
+    
+        if len(input_text) < MIN_LEN: # checks the length of the entered text
+            print("Error: Entered data is invalid. Please check and try again.")
+            return self.name_input(source_field)
+            
+        return input_text # returns entered string if all validation rules are met
