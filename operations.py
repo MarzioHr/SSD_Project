@@ -1,6 +1,7 @@
 import dbconnection as dbc
 import notification
 import admin_operations as adops
+from datetime import datetime
 
 def search_for_source(attribute:str, value:str) -> list:
     '''
@@ -17,20 +18,36 @@ def search_for_source(attribute:str, value:str) -> list:
     
     sql = "";
     val = "";
-    if (attribute == "id" or attribute == "threat_level"):
-        sql = "SELECT * FROM sources WHERE " + attribute + " = %(value)s", 
+    if (attribute == "threat_level"):
+        sql = "SELECT id, name FROM sources WHERE " + attribute + " = %(value)s order by id"
         val = {'value': int(value)}
-    elif (attribute == "name" or attribute == "url" or attribute == "description"):
-        sql = "SELECT * FROM sources WHERE " + attribute + " like %(value)s"
-        val = {'value': '%'+ value +'%'}
+    else:
+        sql = "SELECT id, name FROM sources WHERE lower(" + attribute + ") like %(value)s order by id"
+        val = {'value': '%'+ value.lower() +'%'}
 
     cursor.execute(sql, val)
     result = cursor.fetchall()
     output = []
     for item in result:
-        output.append((item[0], item[1], item[2], item[3], item[4], item[5], item[6],))
+        output.append((item[0], item[1]))
+        
     return output
 
+def get_source_by_id(id:int) -> list:
+    '''
+
+    '''
+    cursor = dbc.establish_connection('data').cursor()
+    
+    sql = "SELECT id, name, url, threat_level, description, creation_date, modified_date FROM sources WHERE id = %(value)s"
+    val = {'value': id}
+
+    try:
+        cursor.execute(sql, val)
+        result = cursor.fetchall()[0]
+    except:
+        return None
+    return (result[0], result[1], result[2], result[3], result[4], result[5], result[6])
 
 def create_new_source(name:str, url:str, threat_level:int, description:str) -> bool:
     '''
@@ -49,9 +66,9 @@ def create_new_source(name:str, url:str, threat_level:int, description:str) -> b
     val = {'name':name, 'url':url, 'threat_level':threat_level, 'description':description, 'creation_date':datetime.now(), 'modified_date':datetime.now()}
     try:    
         cursor.execute(sql, val)
-        sourceId = cursor.fetchone()[0]
         conn.commit()
-    except:
+    except Exception as error:
+        print(error)
         return False
     else:
         recipients = adops.fetch_all_authorities() # fetching list of authority users
@@ -74,9 +91,10 @@ def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
     
     if attribute == 'threat_level':
         new_value = int(new_value) # change new value to int type if the Threat Level is being changed
-        
+    
     sql = "UPDATE sources SET " + attribute + " = %(val)s WHERE id = %(id)s;"
     val = {'val':new_value, 'id': source_id}
+
     try:
         cursor.execute(sql,val)
         conn.commit()
@@ -102,10 +120,9 @@ def change_password(user_id:int, new_password:str) -> bool:
         conn.commit()
     except:
         return False
-    else:
-        fetch_user = adops.fetch_user_info(uid=user_id) # retrieves user's information by fetching it with the uid
-        u_email = fetch_user[1]
-        u_first_name = fetch_user[3]
-        notification.changed_password_email(u_first_name, u_email) # triggers password changed notification email
-        return True
+    fetch_user = adops.fetch_user_info(uid=user_id) # retrieves user's information by fetching it with the uid
+    u_email = fetch_user[1]
+    u_first_name = fetch_user[3]
+    notification.changed_password_email(u_first_name, u_email) # triggers password changed notification email
+    return True
     
