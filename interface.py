@@ -28,7 +28,20 @@ class Interface:
             motd = file.readlines()
             for line in motd:
                 print(line, end='')
-        choice = self.y_n_input("Do you agree with our Terms of Service and Data Privacy Policies? (y/n): ")
+                
+        with open('config/terms_conditions.bin','r') as file:
+            motd = file.readlines()
+            for line in motd:
+                print(line, end='')
+                
+        print()
+                
+        with open('config/privacy_policy.bin','r') as file:
+            motd = file.readlines()
+            for line in motd:
+                print(line, end='')
+                
+        choice = self.y_n_input("\n\n\nDo you agree with our Terms of Service and Data Privacy Policies? (y/n): ")
         if choice == 'y':
             self.login()
         else:
@@ -76,12 +89,12 @@ class Interface:
             last_login = auth.fetch_last_login(self.uid)
             if last_login == None:
                 print(f'\nAccess Granted! Welcome to the System, {self.first_name}.')
-                print('Due to you logging into the system for the first time, please change your own password.')
+                print('\nDue to you logging into the system for the first time, please change your own password.')
                 while True: # while password is not changed iterate over password change prompt (i.e. won't be able to use system until password is changed)
                     changed_pswd = self.change_password()
                     if changed_pswd:
                         auth.update_last_login(self.uid) # updates last_login date stamp
-                        print('\n You will now be logged out. Please login with your new password to use the system.')
+                        print('\nYou will now be logged out. Please login with your new password to use the system.')
                         self.logout()
         
             else:
@@ -155,8 +168,8 @@ class Interface:
             else:
                 self.handle_main()
         else:
-            self.logout()
-            
+            self.logout()          
+    
     
     def authority_menu(self):
         '''
@@ -216,9 +229,9 @@ class Interface:
         if choice == 'y':
             self.create_user()
         else:
-            self.admin_menu()
-        
+            self.admin_menu()      
 
+            
     def modify_user(self):
         '''
         Function to prompt user modification options.
@@ -266,8 +279,8 @@ class Interface:
             self.modify_user()
         else:
             self.handle_main()
-           
-        
+      
+    
     def deactivate_user(self):
         '''
         Prompts dialogue for deactivating an existing user.
@@ -327,19 +340,105 @@ class Interface:
         if choice == 'y':
             self.unlock_user()
         else:
-            self.admin_menu()
+            self.admin_menu()   
     
     
     def search_sources(self):
-        pass
-    
+        print('\nSearch Source')
+        print('---------------------------') 
+        print('\nPlease select the field you want to search:')
+        print(' 1. Name')
+        print(' 2. Url')
+        print(' 3. Description')
+        print(' 4. Threat Level')
+        input_field = self.choice_input(4)
+        
+        if (input_field == 4):
+            search_term = self.choice_input(5)
+        else:
+            search_term = self.search_string_input("Please enter text to search")
+        
+        field_name = self.map_input_field(input_field)
+        
+        result = ops.search_for_source(field_name, search_term)
+        
+        if (len(result) == 0):
+            print("No sources found")
+            self.search_sources() 
+            
+        print("Id\tName")
+        print("--\t--------------")
+        for item in result:
+            print((str(item[0]) + "\t" +item[1]))
+
+        print('\nPlease enter the Source Id to view details:')
+        selected_id = self.source_id_input()
+
+        # Check if enterd Source Id is valid
+        is_valid_id = False
+        for item in result:
+            if item[0] == selected_id:
+                is_valid_id = True
+
+        if (is_valid_id == False):
+            print("Invalid source Id")
+            self.search_sources()
+
+        sourceDetails = ops.get_source_by_id(selected_id)
+
+        if (sourceDetails == None):
+            print ("Error occured")
+            self.search_sources()
+
+        print ("\nId : " + str(sourceDetails[0]))
+        print ("Name : " + sourceDetails[1])
+        print ("Url : " + sourceDetails[2])
+        print ("Description : " + sourceDetails[4])
+        print ("Threat Level : " + str(sourceDetails[3]))
+        print ("Created Date : " + sourceDetails[5].strftime("%m/%b/%Y"))
+        print ("Modified Date : " + sourceDetails[6].strftime("%m/%b/%Y"))
+        
+        print('\nPlease select what you want to do:\n')
+        print(' 1. Edit')
+        print(' 2. Search new source')
+        print(' 3. Main menu')
+
+        choice = self.choice_input(3)
+
+        if choice == 1:
+
+            print('\nPlease select the field you want to edit:')
+            print(' 1. Name')
+            print(' 2. Url')
+            print(' 3. Description')
+            print(' 4. Threat Level')
+            input_edit_field = self.choice_input(4)
+            
+            if (input_edit_field == 4):
+                new_value = self.choice_input(5)
+            else:
+                new_value = self.search_string_input("Please enter new value:")
+            
+            edit_field_name = self.map_input_field(input_edit_field)
+            
+            ops.modify_source(int(selected_id), edit_field_name, new_value)
+
+            print('\nSource has been modified successfully')
+            
+            self.specialist_menu()
+            
+        elif choice == 2:
+            self.search_sources()
+            
+        elif choice == 3:
+            self.specialist_menu()
     
     def create_source(self):
         print('\nCreate a New Source')
         print('---------------------------')
-        inpt_name = self.string_input("Name")
-        inpt_url = self.string_input("Url")
-        inpt_description = self.string_input("Description")
+        inpt_name = self.string_input("Please enter the Source Name")
+        inpt_url = self.string_input("Please enter the Source Url")
+        inpt_description = self.string_input("Please enter the Source Description")
         
         print('\nPlease enter the threat level:')
         print(' 0 : Min - 5 : Max')
@@ -594,17 +693,60 @@ class Interface:
             print("Error: Please answer either 'y' for 'yes' or 'n' for 'no' (please ensure that the input is in lowercase).")
             return self.y_n_input(question)
         
-    def string_input(self, source_field) -> str:
+        
+    def source_create_string_input(self, messege) -> str:
         '''
         
         '''
 
         MIN_LEN = 5
         
-        input_text = input(f"\nPlease enter the Source's {source_field}: ")
+        input_text = input(f"\n{messege}: ")
     
         if len(input_text) < MIN_LEN: # checks the length of the entered text
             print("Error: Entered data is invalid. Please check and try again.")
-            return self.name_input(source_field)
+            return self.source_create_string_input(messege)
             
         return input_text # returns entered string if all validation rules are met
+    
+    
+    def search_string_input(self, messege) -> str:
+        '''
+        
+        '''
+
+        MIN_LEN = 3
+        
+        input_text = input(f"\n{messege}: ")
+    
+        if len(input_text) < MIN_LEN: # checks the length of the entered text
+            print("Error: Search term shuld be more than or equal to three charactors.")
+            return self.search_string_input(messege)
+            
+        return input_text # returns entered string if all validation rules are met
+    
+    
+    def source_id_input(self) -> int:
+        '''
+
+        '''
+        user_input = input("\nSelect Id: ")
+        try:
+            int_input = int(user_input)
+        except:
+            print("Error: Invalid id. Please check your input and try again.")
+            return self.source_id_input(num_choices)
+        
+        return int_input
+    
+    
+    def map_input_field(self, input_field:int):
+        if (input_field == 1):
+            return "name"
+        elif (input_field == 2):
+            return "url"
+        elif (input_field == 3):
+            return "description"
+        elif (input_field == 4):
+            return "threat_level"
+    
