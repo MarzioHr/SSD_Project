@@ -27,7 +27,7 @@ class Interface:
         with open('config/banner.bin','r') as file:
             motd = file.readlines()
             for line in motd:
-                print(line, end='')
+                print(line, end='\n')
                 
         with open('config/terms_conditions.bin','r') as file:
             motd = file.readlines()
@@ -436,9 +436,9 @@ class Interface:
     def create_source(self):
         print('\nCreate a New Source')
         print('---------------------------')
-        inpt_name = self.string_input("Please enter the Source Name")
-        inpt_url = self.string_input("Please enter the Source Url")
-        inpt_description = self.string_input("Please enter the Source Description")
+        inpt_name = self.source_create_string_input("Please enter the Source Name")
+        inpt_url = self.source_create_string_input("Please enter the Source Url")
+        inpt_description = self.source_create_string_input("Please enter the Source Description")
         
         print('\nPlease enter the threat level:')
         print(' 0 : Min - 5 : Max')
