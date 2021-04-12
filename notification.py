@@ -2,6 +2,9 @@ import smtplib
 from email.mime.text import MIMEText
 from cryptography.fernet import Fernet
 
+RED = '\033[91m' # Erorr Messages
+GREEN = '\033[92m' # Success Messages
+
 OUTBND_EMAIL =  'suspect.sources@gmail.com'
 OUTBND_ENC_PSWD = b'gAAAAABgbavwJiy3quTfBs44koynkhs5sNYVETrSeh-aTlFl3HH8LSMvtC0-09fkvqdyTgJJ6DCbmD3nr4R6V5E7VSmtbwh8GVqTqVRU1S4LoJjM0rSPuyo='
 
@@ -15,7 +18,7 @@ try:
     retrieved_key = loginFRetrieve.read()
     loginFRetrieve.close()
 except:
-    print("Error retrieving key.")    
+    print(RED + "Error retrieving key.")    
 
 cipher = Fernet(retrieved_key)
 OUTBND_PSWD = cipher.decrypt(OUTBND_ENC_PSWD)
@@ -95,7 +98,7 @@ def new_source_email(recipient_list:list, source_id:id, source_name:str, source_
             server.sendmail(OUTBND_EMAIL, email, my_email.as_string())
         except:
             return False
-        print(f"Sent Notification successfully to: {first_name} at {email}") # Debug Line to check email sends
+        print(GREEN + f"Sent Notification successfully to: {first_name} at {email}") # Debug Line to check email sends
     return True
 
 

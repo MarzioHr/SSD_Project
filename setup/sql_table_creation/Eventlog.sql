@@ -8,7 +8,7 @@ CREATE TABLE AuthLogs(
 );
 
 
-CREATE TABLE OperationLogs(
+    CREATE TABLE OperationLogs(
    id SERIAL PRIMARY KEY     			NOT NULL, 
    datetime       		VARCHAR(255)    NOT NULL,
    operation      		VARCHAR(255)    NOT NULL,

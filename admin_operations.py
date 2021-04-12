@@ -5,6 +5,10 @@ import secrets
 import string
 from argon2 import PasswordHasher
 
+RED = '\033[91m' # Erorr Messages
+GREEN = '\033[92m' # Success Messages
+
+
 def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:int, admin_id:int) -> bool:
     '''
     Function to sign up a new user. Takes user information as arg to sign up accordingly.
@@ -28,18 +32,18 @@ def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:in
         cursor.execute(sql, val)
         conn.commit()
     except:
-        print('Issue with registering new user on database. Please check the db connection and ensure that it is working as expected.')
+        print(RED + 'Issue with registering new user on database. Please check the db connection and ensure that it is working as expected.')
         return False
     else:
         created_user_id = cursor.fetchone()[0]
         log.admin_log('Create User', admin_id, created_user_id) # logging event in logs
-        print(f'User successfully created. Sending Registration email to {email}...')
+        print(GREEN + f'User successfully created. Sending Registration email to {email}...')
     
     sent_email = notification.registration_email(first_name, email, username, clear_pswd)
     if sent_email:
-        print('Email sent successfully!')
+        print(GREEN + 'Email sent successfully!')
     else:
-        print('Email could not be sent. Please ensure that the SMTP is reachable.')
+        print(RED + 'Email could not be sent. Please ensure that the SMTP is reachable.')
     return True
     
     
