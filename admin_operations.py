@@ -52,7 +52,7 @@ def modify_user(uid:int, attribute:str, new_value:str, admin_id:int) -> bool:
     cursor = conn.cursor() # Connect Cursor to Authentication DB
     
     cursor.execute("SELECT " + attribute + " FROM users WHERE id = %(uid)s", {'uid':uid}) # query current value
-    curr_val = cursor.fetchall()[0]
+    curr_val = cursor.fetchall()[0][0]
     
     if attribute == 'user_role':
         new_value = int(new_value) # change new value to int type if the user role is being changed
@@ -65,7 +65,7 @@ def modify_user(uid:int, attribute:str, new_value:str, admin_id:int) -> bool:
     except:
         return False
     
-    log.admin_log('Edit User', admin_id, uid, modified=attribute, old_val=str(curr_value), new_val=str(new_value))
+    log.admin_log('Edit User', admin_id, uid, modified=attribute, old_val=str(curr_val), new_val=str(new_value))
     return True
     
 

@@ -1,4 +1,5 @@
 import dbconnection as dbc
+import eventlog as log
 from argon2 import PasswordHasher  # Argon2 lib to hash password
 from datetime import datetime
 

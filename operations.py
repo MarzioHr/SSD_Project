@@ -95,7 +95,7 @@ def modify_source(source_id:int, attribute:str, new_value:str, uid:int) -> bool:
     cursor = conn.cursor()
     
     cursor.execute("SELECT " + attribute + " FROM sources WHERE id = %(sid)s", {'sid':source_id}) # query current value
-    curr_val = cursor.fetchall()[0]
+    curr_val = cursor.fetchall()[0][0]
     
     if attribute == 'threat_level':
         new_value = int(new_value) # change new value to int type if the Threat Level is being changed
@@ -108,7 +108,7 @@ def modify_source(source_id:int, attribute:str, new_value:str, uid:int) -> bool:
         conn.commit()
     except:
         return False
-    log.operation("Edit Source", uid, source_id, modified=attribute, old_val=str(curr_value), new_val=str(new_value)) # log edit source event
+    log.operation_log("Edit Source", uid, source_id, modified=attribute, old_val=str(curr_val), new_val=str(new_value)) # log edit source event
     return True
 
 

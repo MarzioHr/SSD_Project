@@ -81,7 +81,7 @@ class Interface:
                     quit()
         
         else:
-            log.auth_log("Successful Login", result[0]) # log successful login
+            log.auth_log("Successful Login", login[0]) # log successful login
             self.uid = login[0]
             self.urole = login[2]
             self.first_name = login[1]
@@ -419,7 +419,7 @@ class Interface:
             if (input_edit_field == 4):
                 new_value = self.choice_input(5)
             else:
-                new_value = self.search_string_input("Please enter new value:")
+                new_value = self.search_string_input("Please enter new value")
             
             edit_field_name = self.map_input_field(input_edit_field)
             
@@ -691,12 +691,12 @@ class Interface:
         '''
         Validates a yes/no question and returns the str if answer is either 'y' or 'n'.
         '''
-        input_choice = input(question)
+        input_choice = input(question).lower()
         
         if input_choice == 'y' or input_choice == 'n':
             return input_choice    
         else: 
-            print("Error: Please answer either 'y' for 'yes' or 'n' for 'no' (please ensure that the input is in lowercase).")
+            print("Error: Please answer either 'y' for 'yes' or 'n' for 'no'.")
             return self.y_n_input(question)
         
         
