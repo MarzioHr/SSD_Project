@@ -2,7 +2,7 @@ import stdiomask
 import authentication as auth
 import admin_operations as adops
 import operations as ops
-
+import eventlog as log
     
 class Interface:
     
@@ -81,6 +81,7 @@ class Interface:
                     quit()
         
         else:
+            log.auth_log("Successful Login", result[0]) # log successful login
             self.uid = login[0]
             self.urole = login[2]
             self.first_name = login[1]
@@ -219,7 +220,7 @@ class Interface:
         print(' 3. External Authority')
         inpt_role = self.choice_input(3)
         
-        result = adops.register_new_user(inpt_first, inpt_last, inpt_dob, inpt_email, inpt_role)
+        result = adops.register_new_user(inpt_first, inpt_last, inpt_dob, inpt_email, inpt_role, self.uid)
         if result:
             print("User has successfully been created!")
         else:
@@ -253,21 +254,21 @@ class Interface:
             edit_option = self.choice_input(4)
             if edit_option==1:
                 inpt_first = self.name_input("new First")
-                changed = adops.modify_user(result[0], 'first_name', inpt_first)
+                changed = adops.modify_user(result[0], 'first_name', inpt_first, self.uid)
                 if changed:
                     print("User has successfully been modified!")
                 else:
                     print("Error: User has not been modified successfully. Please try again.")
             elif edit_option==2:
                 inpt_last = self.name_input("new Last")
-                changed = adops.modify_user(result[0], 'last_name', inpt_last)
+                changed = adops.modify_user(result[0], 'last_name', inpt_last, self.uid)
                 if changed:
                     print("User has successfully been modified!")
                 else:
                     print("Error: User has not been modified successfully. Please try again.")
             elif edit_option==3:
                 inpt_dob = self.dob_input()
-                changed = adops.modify_user(result[0], 'dob', inpt_dob)
+                changed = adops.modify_user(result[0], 'dob', inpt_dob, self.uid)
                 if changed:
                     print("User has successfully been modified!")
                 else:
@@ -296,7 +297,7 @@ class Interface:
                 print(f'ID: {result[0]}\t|\tFirst Name: {result[1]}\t|\tLast Name: {result[2]}\t|\tEmail: {result[3]}\t|\tCurrent Status: {result[5]}\n')
                 choice = self.y_n_input("Are you sure you want to deactivate this user? (y/n): ")
                 if choice == 'y':
-                    deactivated = adops.deactivate_user(result[0])
+                    deactivated = adops.deactivate_user(result[0], self.uid, result[5])
                     if deactivated:
                         print("User has successfully been deactivated.")
                     else:
@@ -327,7 +328,7 @@ class Interface:
                 print(f'ID: {result[0]}\t|\tFirst Name: {result[1]}\t|\tLast Name: {result[2]}\t|\tEmail: {result[3]}\t|\tCurrent Status: {result[5]}\n')
                 choice = self.y_n_input("Are you sure you want to unlock this user? (y/n): ")
                 if choice == 'y':
-                    unlocked = adops.unlock_user(result[0])
+                    unlocked = adops.unlock_user(result[0], self.uid)
                     if unlocked:
                         print("User has successfully been unlocked! The User can now login again.")
                     else:
@@ -378,6 +379,7 @@ class Interface:
         is_valid_id = False
         for item in result:
             if item[0] == selected_id:
+                log.operation_log("View Source", self.uid, selected_id) # log view source event
                 is_valid_id = True
 
         if (is_valid_id == False):
@@ -421,7 +423,7 @@ class Interface:
             
             edit_field_name = self.map_input_field(input_edit_field)
             
-            ops.modify_source(int(selected_id), edit_field_name, new_value)
+            ops.modify_source(int(selected_id), edit_field_name, new_value, self.uid)
 
             print('\nSource has been modified successfully')
             
@@ -444,7 +446,7 @@ class Interface:
         print(' 0 : Min - 5 : Max')
         inpt_threat_level = self.choice_input(5)
         
-        result = ops.create_new_source(inpt_name, inpt_url, inpt_threat_level, inpt_description)
+        result = ops.create_new_source(inpt_name, inpt_url, inpt_threat_level, inpt_description, self.uid)
         
         if result:
             print("Source has successfully been created!")
@@ -475,6 +477,10 @@ class Interface:
             confirm_password = stdiomask.getpass('Please confirm your new Password: ')
             valid_pswd = self.password_validator(new_password)
             if valid_pswd:
+                if new_password == inpt_password:
+                    print('\nError: Your new password may not be the same as your old one. Please try again.')
+                    return False
+                
                 if new_password == confirm_password:
                     changed = ops.change_password(self.uid, auth.hash_pswd(new_password)) # sends updated password as hash to the change password function
                     if changed:

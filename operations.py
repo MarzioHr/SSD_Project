@@ -1,4 +1,5 @@
 import dbconnection as dbc
+import eventlog as log
 import notification
 import admin_operations as adops
 from datetime import datetime
@@ -35,7 +36,9 @@ def search_for_source(attribute:str, value:str) -> list:
 
 def get_source_by_id(id:int) -> list:
     '''
-
+    Function to return source information by its id.
+    Used in the search operation of the interface module.
+    Takes as argument the source id and returns a tuple of (id, name, url, threat level, description, creation date, modified date)
     '''
     cursor = dbc.establish_connection('data').cursor()
     
@@ -49,7 +52,8 @@ def get_source_by_id(id:int) -> list:
         return None
     return (result[0], result[1], result[2], result[3], result[4], result[5], result[6])
 
-def create_new_source(name:str, url:str, threat_level:int, description:str) -> bool:
+
+def create_new_source(name:str, url:str, threat_level:int, description:str, uid:int) -> bool:
     '''
     Function to create a new entry in the sources database table. Takes as input the name of the source, the url, the threat level and the description.
     Returns a bool value depending on whether the creation was successful. I.e. should return 'True' if successful and 'False' if not.
@@ -73,11 +77,12 @@ def create_new_source(name:str, url:str, threat_level:int, description:str) -> b
     else:
         recipients = adops.fetch_all_authorities() # fetching list of authority users
         source_id = cursor.fetchone()[0] # retrieving the id of the newly created source
+        log.operation_log("Create Source", uid, source_id) # log source creation event
         notification.new_source_email(recipients, source_id, name, url, threat_level) # triggering the source notification email
         return True
 
     
-def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
+def modify_source(source_id:int, attribute:str, new_value:str, uid:int) -> bool:
     '''
     Function to modify the information of an existing source. Takes as input the id of the source that is being modified, the attribute to be modified
     and the new value that should be saved.
@@ -88,6 +93,9 @@ def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
     '''
     conn = dbc.establish_connection('data')
     cursor = conn.cursor()
+    
+    cursor.execute("SELECT " + attribute + " FROM sources WHERE id = %(sid)s", {'sid':source_id}) # query current value
+    curr_val = cursor.fetchall()[0]
     
     if attribute == 'threat_level':
         new_value = int(new_value) # change new value to int type if the Threat Level is being changed
@@ -100,6 +108,7 @@ def modify_source(source_id:int, attribute:str, new_value:str) -> bool:
         conn.commit()
     except:
         return False
+    log.operation("Edit Source", uid, source_id, modified=attribute, old_val=str(curr_value), new_val=str(new_value)) # log edit source event
     return True
 
 
@@ -120,6 +129,7 @@ def change_password(user_id:int, new_password:str) -> bool:
         conn.commit()
     except:
         return False
+    log.auth_log("Password Change", user_id)
     fetch_user = adops.fetch_user_info(uid=user_id) # retrieves user's information by fetching it with the uid
     u_email = fetch_user[1]
     u_first_name = fetch_user[3]

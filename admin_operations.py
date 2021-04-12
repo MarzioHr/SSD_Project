@@ -1,12 +1,14 @@
 import dbconnection as dbc
+import eventlog as log
 import notification
 import secrets
 import string
 from argon2 import PasswordHasher
 
-def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:int) -> bool:
+def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:int, admin_id:int) -> bool:
     '''
     Function to sign up a new user. Takes user information as arg to sign up accordingly.
+    Takes Admin's id as argument to create log in the eventlog database.
     If sign-up is successful, triggers notification email.
     '''
     conn = dbc.establish_connection('authentication')
@@ -18,7 +20,8 @@ def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:in
     
     sql = """
           INSERT INTO users (first_name, last_name, dob, user_role, username, password, status, email)
-          VALUES (%(first_name)s,%(last_name)s,%(dob)s,%(role)s,%(username)s,%(password)s,%(status)s,%(email)s);
+          VALUES (%(first_name)s,%(last_name)s,%(dob)s,%(role)s,%(username)s,%(password)s,%(status)s,%(email)s)
+          RETURNING id
           """
     val = {'first_name':first_name, 'last_name':last_name, 'dob':dob, 'role':role, 'username':username, 'password':hash_pswd, 'status':1, 'email':email}
     try:    
@@ -28,9 +31,10 @@ def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:in
         print('Issue with registering new user on database. Please check the db connection and ensure that it is working as expected.')
         return False
     else:
+        created_user_id = cursor.fetchone()[0]
+        log.admin_log('Create User', admin_id, created_user_id) # logging event in logs
         print(f'User successfully created. Sending Registration email to {email}...')
     
-    # eventlog TODO
     sent_email = notification.registration_email(first_name, email, username, clear_pswd)
     if sent_email:
         print('Email sent successfully!')
@@ -39,13 +43,16 @@ def register_new_user(first_name:str, last_name:str, dob:str, email:str, role:in
     return True
     
     
-def modify_user(uid:int, attribute:str, new_value:str) -> bool:
+def modify_user(uid:int, attribute:str, new_value:str, admin_id:int) -> bool:
     '''
     Function to modify an existing user. Takes the user id as input to execute upon.
     The attribute denotes the datafield to be modified, the new_value denotes the new value after the modification.
     '''
     conn = dbc.establish_connection('authentication')
     cursor = conn.cursor() # Connect Cursor to Authentication DB
+    
+    cursor.execute("SELECT " + attribute + " FROM users WHERE id = %(uid)s", {'uid':uid}) # query current value
+    curr_val = cursor.fetchall()[0]
     
     if attribute == 'user_role':
         new_value = int(new_value) # change new value to int type if the user role is being changed
@@ -57,12 +64,14 @@ def modify_user(uid:int, attribute:str, new_value:str) -> bool:
         conn.commit()
     except:
         return False
+    
+    log.admin_log('Edit User', admin_id, uid, modified=attribute, old_val=str(curr_value), new_val=str(new_value))
     return True
     
 
-def unlock_user(uid:int) -> bool:
+def unlock_user(uid:int, admin_id:int) -> bool:
     '''
-    Function to unlock an already locked user. Takes as input the user's id.
+    Function to unlock an already locked user. Takes as input the admin's id and the if of the user to unlock.
     If unlock was successful, will return bool 'True'. If there was an error, returns bool 'False'.
     '''
     conn = dbc.establish_connection('authentication')
@@ -74,6 +83,7 @@ def unlock_user(uid:int) -> bool:
         conn.commit()
     except:
         return False
+    log.admin_log('Unlock User', admin_id, uid, modified='status', old_val='3', new_val='1')
     return True
 
 
@@ -91,10 +101,11 @@ def lock_user(uid:int) -> bool:
         conn.commit()
     except:
         return False
+    log.auth_log("Account Locked", uid) # log locked account event
     return True
 
 
-def deactivate_user(uid:int) -> bool:
+def deactivate_user(uid:int, admin_id:int, curr_status:int) -> bool:
     '''
     Function to deactivate (soft-delete) a user if the access is no longer needed. Takes as input the user's id.
     If deactivation was successful, will return bool 'True'. If there was an error, returns bool 'False'.
@@ -108,6 +119,7 @@ def deactivate_user(uid:int) -> bool:
         conn.commit()
     except:
         return False
+    log.admin_log('Deactivate User', admin_id, uid, modified='status', old_val=str(curr_status), new_val='2') # log deactivation event
     return True
 
 
