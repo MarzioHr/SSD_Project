@@ -3,6 +3,7 @@ import authentication as auth
 import admin_operations as adops
 import operations as ops
 import eventlog as log
+from validator_collection import checkers
 
 RED = '\033[91m' # Erorr Messages
 GREEN = '\033[92m' # Success Messages
@@ -36,6 +37,10 @@ class Interface:
             motd = file.readlines()
             for line in motd:
                 print(BLUE + BOLD + line, end='')
+                
+        print(YELLOW + 'Terms of Service: ' + WHITE + 'https://marziohr.github.io/SSD_Project/policies/Terms%20and%20Conditions.pdf')
+        print(YELLOW + 'Privacy Policy: ' + WHITE + 'https://marziohr.github.io/SSD_Project/policies/Privacy%20Policy.pdf')
+
                 
 #         with open('config/terms_conditions.bin','r') as file:
 #             motd = file.readlines()
@@ -424,8 +429,10 @@ class Interface:
             print(' 4. Threat Level' + WHITE)
             input_edit_field = self.choice_input(4)
             
-            if (input_edit_field == 4):
-                new_value = self.choice_input(5)
+            if (input_edit_field == 2):
+                new_value = self.source_create_url_input("Please enter new url")
+            elif (input_edit_field == 4):
+                new_value = self.choice_input(5)  
             else:
                 new_value = self.search_string_input(WHITE + "Please enter new value")
             
@@ -447,7 +454,7 @@ class Interface:
         print(BLUE + '\nCreate a New Source')
         print('---------------------------' + WHITE)
         inpt_name = self.source_create_string_input("Please enter the Source Name")
-        inpt_url = self.source_create_string_input("Please enter the Source Url")
+        inpt_url = self.source_create_url_input("Please enter the Source Url")
         inpt_description = self.source_create_string_input("Please enter the Source Description")
         
         print(YELLOW + '\nPlease enter the threat level:')
@@ -708,9 +715,22 @@ class Interface:
             return self.y_n_input(question)
         
         
+    def source_create_url_input(self, messege) -> str:
+        '''
+        Validates url input for source creation
+        '''
+
+        input_text = input(f"\n{messege}: ")
+        
+        if (checkers.is_url(input_text) == False):
+            print(RED + "Error: Entered data is invalid. Please check and try again.")
+            return self.source_create_url_input(messege)
+            
+        return input_text # returns entered string if all validation rules are met
+
     def source_create_string_input(self, messege) -> str:
         '''
-        
+        Validates string user input for source creation
         '''
 
         MIN_LEN = 5
@@ -723,10 +743,9 @@ class Interface:
             
         return input_text # returns entered string if all validation rules are met
     
-    
     def search_string_input(self, messege) -> str:
         '''
-        
+        Validates string user input search term
         '''
 
         MIN_LEN = 3
@@ -742,8 +761,9 @@ class Interface:
     
     def source_id_input(self) -> int:
         '''
-
+        Validates Source id user input
         '''
+        
         user_input = input(WHITE + "\nSelect Id: ")
         try:
             int_input = int(user_input)
@@ -755,6 +775,10 @@ class Interface:
     
     
     def map_input_field(self, input_field:int):
+        '''
+        Map user input integer value to database field      
+        '''
+        
         if (input_field == 1):
             return "name"
         elif (input_field == 2):
