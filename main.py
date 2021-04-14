@@ -1,4 +1,6 @@
+"""Main module to execute the Suspect Sources CLI."""
+
 import interface
 
-main_cli = interface.Interface()
-
+if __name__ == "__main__":
+    main_cli = interface.Interface()

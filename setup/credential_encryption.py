@@ -1,8 +1,9 @@
+"""Module to demonstrate the DB Credential Encryption using Fernet."""
+
 from cryptography.fernet import Fernet
 
 KEY_FILE = "config/key.bin"
 CLEAR_INPUT = "setup/psql_clear_credentials.txt"
-
 
 fopen = open(KEY_FILE,"rb")
 key = fopen.read()
