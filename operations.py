@@ -21,15 +21,21 @@ def search_for_source(attribute:str, value:str) -> list:
     cursor = dbc.establish_connection('data').cursor()
     if attribute == "threat_level":
         value = int(value)
+        stmt=sql.SQL(
+        "SELECT id, name FROM sources WHERE {attribute} = {value} order by id"
+        ).format(
+            attribute = sql.Identifier(attribute.lower()),
+            value = sql.Literal(value),
+        )
     else:
         value = value.lower()
-
-    stmt=sql.SQL(
-        "SELECT id, name FROM sources WHERE {attribute} like {value} order by id"
-    ).format(
-        attribute = sql.Identifier(attribute.lower()),
-        value = sql.Literal('%'+ value +'%'),
-    )
+        value = '%'+value+'%'
+        stmt=sql.SQL(
+        "SELECT id, name FROM sources WHERE lower({attribute}) like {value} order by id"
+        ).format(
+            attribute = sql.Identifier(attribute.lower()),
+            value = sql.Literal(value),
+        )
 
     cursor.execute(stmt)
     result = cursor.fetchall()
