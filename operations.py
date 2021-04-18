@@ -121,7 +121,9 @@ def modify_source(source_id:int, attribute:str, new_value:str, uid:int) -> bool:
     if attribute == 'threat_level':
         new_value = int(new_value) # change new value to int type if Threat Level is being changed
 
-    stmt = sql.SQL("UPDATE sources SET {attribute}={value}, modified_date={dtnow} WHERE id = {sid}").format(
+    stmt = sql.SQL(
+        "UPDATE sources SET {attribute}={value}, modified_date={dtnow} WHERE id = {sid}"
+    ).format(
             attribute = sql.Identifier(attribute),
             sid = sql.Literal(source_id),
             value = sql.Literal(new_value),

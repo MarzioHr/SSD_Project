@@ -48,6 +48,9 @@ def register_new_user(first_name:str,last_name:str,dob:str,email:str,role:int,ad
         print(RED + 'Issue with registering new user on database. Error:', error)
         print(YELLOW + 'Error TYPE:', type(error))
         return False
+    except psycopg2.errors.DatetimeFieldOverflow: #pylint: disable=no-member
+        print(RED + 'Issue with the given Date of Birth. Please check your input and try again.')
+        return False
     else:
         created_user_id = cursor.fetchone()[0]
         log.admin_log('Create User', admin_id, created_user_id) # logging event in logs
@@ -90,6 +93,9 @@ def modify_user(uid:int, attribute:str, new_value:str, admin_id:int) -> bool:
     except psycopg2.OperationalError as error:
         print(RED + 'Issue with modifying user on database. Error:', error)
         print(YELLOW + 'Error TYPE:', type(error))
+        return False
+    except psycopg2.errors.DatetimeFieldOverflow: #pylint: disable=no-member
+        print(RED + 'Issue with the given Date of Birth. Please check your input and try again.')
         return False
     log.admin_log(
         'Edit User',
