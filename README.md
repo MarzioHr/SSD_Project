@@ -139,9 +139,11 @@ The status attribute denotes the current status of that specific user. In total,
 ```
 
 !['authentication.users' Columns and Attribute Types](https://i.imgur.com/SWP5kCQ.png)
+
 *Figure 1: 'authentication.users' Columns and Attribute Types*
 
 !['authentication.users' Sample Data](https://i.imgur.com/XEVuCpU.png)
+
 *Figure 2: 'authentication.users' Sample Data*
 
 
@@ -155,9 +157,11 @@ If a new source is added to the System, an email notification is triggered to al
 When searching for sources in the System, the entered data is queried against the appropriate attributes of the 'sources' table, and the details are displayed back to the user. If a user actions a modification, the applicable data row is updated on this database.
 
 !['data.sources' Columns and Attribute Types](https://i.imgur.com/8brslyw.png)
+
 *Figure 3: 'data.sources' Columns and Attribute Types*
 
 !['data.sources' Sample Data](https://i.imgur.com/SnMic84.png)
+
 *Figure 4: 'data.sources' Sample Data*
 
 
@@ -167,16 +171,19 @@ The eventlog database serves as the log database that stores all traces of user 
 The table 'authlogs' stores logs for authentication actions of existing accounts, such as successful login, change of password, locked account due to failed attempts, and unsuccessful login attempts for users with the status "deactivated" and "locked". For all actions, the data includes the date and time when the action was conducted, what operation it is (successful login, modified password, locked account or unsuccessful login) and who actioned it (user id).
 
 !['eventlog.authlogs' Sample Data](https://i.imgur.com/bXpmpoz.png)
+
 *Figure 5: 'eventlog.authlogs' Sample Data*
 
 The table 'operationlogs' stores all traces for actions on the source data. For all events the data includes when the action was conducted, what action it is (creation/modification/view), what source was effected (source id) and who actioned it (user id). For modify actions, it includes the record that was modified, the old value before the change and the new value after the change.
 
 !['eventlog.operationlogs'](https://i.imgur.com/jR1lGLM.png)
+
 *Figure 6: 'eventlog.operationlogs' Sample Data*
 
 The table 'adminlogs' stores all traces of administrator actions on user data. For all events, the data includes when the action was conducted, what action it is (creation/modification/unlock/deactivate), what user is affected (user id), and who actioned it (admin id). For modify actions, the logs include the attribute that was modified, the old value before the change and the new value after the change.
 
 !['eventlog.adminlogs' Sample Data](https://i.imgur.com/SfTDnmh.png)
+
 *Figure 7: 'eventlog.adminlogs' Sample Data*
 
 
@@ -259,12 +266,15 @@ Throughout the System, we are using three email notifications to be sent out to 
 - A ***Changed Password Confirmation*** whenever a password of a user is changed from within the CLI
 
 ![Registration Email](https://i.imgur.com/0GjvNMC.png)
+
 *Figure 8: Registration Email*
 
 ![Suspect Source Notification](https://i.imgur.com/sPNAANu.png)
+
 *Figure 9: Suspect Source Notification*
 
 ![Changed Password Confirmation](https://i.imgur.com/6v7sOSq.png)
+
 *Figure 10: Changed Password Confirmation*
 
 
@@ -287,11 +297,13 @@ Continuous Source Code review is done to ensure the structure, style, complexity
 By following the Pylint feedback, we raised the final score of the code basis to 9.96/10. The only part that couldn't conform to the standards was the notification module. Some features of the notification module included the HTML styling of the notification emails, which exceeded the line limit of 100 characters.
 
 ![Pylint Final Score for Source Code](https://i.imgur.com/UlYX8nk.png)
+
 *Figure 11: Pylint Final Score for Source Code*
 
 Bandit initially flagged a remaining possible SQL injection vector that could have been exploited if overlooked. We ensured that all users inputs were escaped before being passed to the SQL query; however, at one point, the search attribute in a query was still created via a string-based construction. After adjusting this part of the code, the next Bandit run confirmed that our code basis was now issue-free.
 
 ![Bandit's Final Run with No Issues Found](https://i.imgur.com/eEOJpOl.png)
+
 *Figure 12: Bandit's Final Run with No Issues Found.*
 
 The last type of testing was done before submitting the final project. Functional Testing ensures that all end-to-end use cases and user scenarios that will be done via the System are included and working. First, we established a Functional Test Plan containing a full checklist of test cases for the individual roles and the System in general. We then proceeded with manually testing each of the test scenarios to ensure that the System as a whole is working as per the use-case specifications. The complete Functional Test Plan can be found below. Doing so gave certainty that all use cases the System set out to cater towards were fulfilled.
