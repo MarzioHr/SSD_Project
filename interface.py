@@ -218,7 +218,7 @@ class Interface: #pylint: disable=too-many-public-methods
         Validation rules:
         First Name: >2 characters and may only contain letters, spaces and '-'
         Last Name: >2 characters and may only contain letters, spaces and '-'
-        Date of Birth: Exactly 10 characters and may only contain numbers and '/'
+        Date of Birth: Exactly 10 characters and may only contain numbers and '-'
         Email: Must contain exactly 1x '@' and atleast 1x '.' and end with a letter.
         May contain alphanum and '-', '.', '_', '+'
 
@@ -389,7 +389,7 @@ class Interface: #pylint: disable=too-many-public-methods
             print(RED + "No sources found")
             self.search_sources()
 
-        print(BLUE + "Id\tName")
+        print(BLUE + "\nId\tName")
         print("--\t--------------")
         for item in result:
             print((str(item[0]) + "\t" +item[1]))
@@ -414,42 +414,53 @@ class Interface: #pylint: disable=too-many-public-methods
         print (BLUE + "\nId : " + str(source_details[0]))
         print ("Name : " + source_details[1])
         print ("Url : " + source_details[2])
-        print ("Description : " + source_details[4])
-        print ("Threat Level : " + str(source_details[3]))
+        print ("\nDescription : \n" + source_details[4])
+        print ("\nThreat Level : " + str(source_details[3]))
         print ("Created Date : " + source_details[5].strftime("%m/%b/%Y"))
         print ("Modified Date : " + source_details[6].strftime("%m/%b/%Y"))
 
         print(YELLOW + '\nPlease select what you want to do:')
-        print(' 1. Edit')
-        print(' 2. Search new source')
-        print(' 3. Main menu' + WHITE)
+
+        if self.urole == 3:
+            print(' 1. Search new source')
+            print(' 2. Main menu' + WHITE)
+        else:
+            print(' 1. Edit')
+            print(' 2. Search new source')
+            print(' 3. Main menu' + WHITE)
 
         choice = self.choice_input(3)
 
-        if choice == 1:
-            print(BLUE + '\nPlease select the field you want to edit:')
-            print(' 1. Name')
-            print(' 2. Url')
-            print(' 3. Description')
-            print(' 4. Threat Level' + WHITE)
-            input_edit_field = self.choice_input(4)
+        if self.urole == 3:
+            if choice == 1:
+                self.search_sources()
+            elif choice == 2:
+                self.specialist_menu()
+        else:
+            if choice == 1:
+                print(BLUE + '\nPlease select the field you want to edit:')
+                print(' 1. Name')
+                print(' 2. Url')
+                print(' 3. Description')
+                print(' 4. Threat Level' + WHITE)
+                input_edit_field = self.choice_input(4)
 
-            if input_edit_field == 2:
-                new_value = self.source_create_url_input("Please enter new url")
-            elif input_edit_field == 4:
-                new_value = self.choice_input(5)
-            else:
-                new_value = self.search_string_input(WHITE + "Please enter new value")
+                if input_edit_field == 2:
+                    new_value = self.source_create_url_input("Please enter new url")
+                elif input_edit_field == 4:
+                    new_value = self.choice_input(5)
+                else:
+                    new_value = self.search_string_input(WHITE + "Please enter new value")
 
-            edit_field_name = self.map_input_field(input_edit_field)
-            ops.modify_source(int(selected_id), edit_field_name, new_value, self.uid)
-            print(GREEN + '\nSource has been modified successfully')
-            self.specialist_menu()
+                edit_field_name = self.map_input_field(input_edit_field)
+                ops.modify_source(int(selected_id), edit_field_name, new_value, self.uid)
+                print(GREEN + '\nSource has been modified successfully')
+                self.specialist_menu()
 
-        elif choice == 2:
-            self.search_sources()
-        elif choice == 3:
-            self.specialist_menu()
+            elif choice == 2:
+                self.search_sources()
+            elif choice == 3:
+                self.specialist_menu()
 
 
     def create_source(self):
@@ -647,7 +658,7 @@ class Interface: #pylint: disable=too-many-public-methods
         '''
         Wrapper to validate and sanitise the user input date of birth.
         Ensures that string is following validation rules. If so, returns the entered string.
-        Validation: Exactly 10 characters and may only contain numbers and '/'
+        Validation: Exactly 10 characters and may only contain numbers and '-'
         '''
         valid_char = ('-')
         exact_len = 10

@@ -8,6 +8,7 @@ import dbconnection as dbc
 import eventlog as log
 
 WHITE = '\033[97m' # User Input
+RED = '\033[91m' # Error Messages
 
 # set Argon2 password hasher object
 ph = argon2.PasswordHasher()
@@ -35,7 +36,11 @@ def existing_user(user:str, password:str) -> tuple: #pylint: disable=inconsisten
     try:
         cursor.execute(sql,val)
         result = cursor.fetchall()[0]
-    except psycopg2.OperationalError:
+    except psycopg2.OperationalError as error:
+        print(RED+"Encountered an issue with the database. Error:", error)
+        print(WHITE, end='')
+        return None
+    except IndexError:
         return None
     user_status = result[4]
     if user_status==2:
@@ -46,7 +51,7 @@ def existing_user(user:str, password:str) -> tuple: #pylint: disable=inconsisten
         sys.exit()
     elif user_status==3:
         log.auth_log("Failed Login: Locked User", result[0])
-        print('This user is currently locked.', end='')
+        print(RED+'This user is currently locked. ', end='')
         print('Please contact the system administrator team for further information.')
         print(WHITE)
         sys.exit()

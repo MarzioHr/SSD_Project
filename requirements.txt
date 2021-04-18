@@ -1,3 +1,6 @@
 pip3 install argon2-cffi
 pip3 install cryptography
 pip3 install stdiomask
+pip3 install psycopg2
+pip3 install validator_collection
+pip3 install secrets
